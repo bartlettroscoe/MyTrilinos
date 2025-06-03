@@ -3555,11 +3555,8 @@ public:
                                           bool& reverseMode, 
                                           bool& restrictComm,
                                           bool& useKokkosPath,
-                                          bool& overrideAllreduce,
-                                          int& mm_optimization_core_count,
                                           Teuchos::RCP<Teuchos::ParameterList>& matrixparams,
                                           std::shared_ptr<Tpetra::Details::CommRequest>& iallreduceRequest,
-                                          int& mismatch,
                                           int& reduced_mismatch) const;
 
   public:

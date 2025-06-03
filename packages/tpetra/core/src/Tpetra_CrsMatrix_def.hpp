@@ -7704,11 +7704,8 @@ CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
                                         bool& reverseMode,
                                         bool& restrictComm,
                                         bool& useKokkosPath,
-                                        bool& overrideAllreduce,
-                                        int& mm_optimization_core_count,
                                         Teuchos::RCP<Teuchos::ParameterList>& matrixparams,
                                         std::shared_ptr<Tpetra::Details::CommRequest>& iallreduceRequest,
-                                        int& mismatch,
                                         int& reduced_mismatch) const
   {
     using Details::Behavior;
@@ -7720,8 +7717,8 @@ CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
     isMM = false; // optimize for matrix-matrix ops.
     reverseMode = false; // Are we in reverse mode?
     restrictComm = false; // Do we need to restrict the communicator?
-    mm_optimization_core_count = Behavior::TAFC_OptimizationCoreCount();
-    overrideAllreduce = false;
+    int mm_optimization_core_count = Behavior::TAFC_OptimizationCoreCount();
+    bool overrideAllreduce = false; // Internal variables, not passed from outside
     useKokkosPath = false;
     
     if (! params.is_null ()) {
@@ -7739,7 +7736,7 @@ CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
     }
 
     // Initialize iallreduce-related variables
-    mismatch = 0;
+    int mismatch = 0;
     reduced_mismatch = 0;
     
     // Handle iallreduce setup for matrix-matrix multiply operations
@@ -7748,7 +7745,7 @@ CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
       const bool source_vals = ! getGraph ()->getImporter ().is_null();
       const bool target_vals = ! (rowTransfer.getExportLIDs ().size() == 0 ||
                                   rowTransfer.getRemoteLIDs ().size() == 0);
-      mismatch = (source_vals != target_vals) ? 1 : 0;
+      int mismatch = (source_vals != target_vals) ? 1 : 0;
       iallreduceRequest =
         ::Tpetra::Details::iallreduce (mismatch, reduced_mismatch,
                                        Teuchos::REDUCE_MAX, * (getComm ()));
@@ -7802,20 +7799,16 @@ CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
     bool isMM; // optimize for matrix-matrix ops.
     bool reverseMode; // Are we in reverse mode?
     bool restrictComm; // Do we need to restrict the communicator?
-    int mm_optimization_core_count;
     RCP<ParameterList> matrixparams; // parameters for the destination matrix
-    bool overrideAllreduce;
     bool useKokkosPath;
     
     // Variables for iallreduce handling (set by transferAndFillComplete_getParameters)
     std::shared_ptr<Tpetra::Details::CommRequest> iallreduceRequest;
-    int mismatch;
     int reduced_mismatch;
 
     transferAndFillComplete_getParameters(params, rowTransfer, isMM, reverseMode, restrictComm,
-                                        useKokkosPath, overrideAllreduce,
-                                        mm_optimization_core_count, matrixparams,
-                                        iallreduceRequest, mismatch, reduced_mismatch);
+                                        useKokkosPath, matrixparams,
+                                        iallreduceRequest, reduced_mismatch);
 
 #ifdef HAVE_TPETRA_MMM_TIMINGS
     using Teuchos::TimeMonitor;
@@ -7829,8 +7822,7 @@ CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
         if(isMM) os<<":MMOpt";
         else os<<":MMLegacy";
         tlstr = os.str();
-    }
-
+    } 
     Teuchos::TimeMonitor MMall(*TimeMonitor::getNewTimer(prefix + std::string("TAFC All") +tlstr ));
 #endif
 
