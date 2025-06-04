@@ -282,6 +282,8 @@ namespace Tpetra {
                   MultiVector<SC,LO,GO,NO> & R);
   }
 
+  namespace Details { class CommRequest; }
+
   /// \class CrsMatrix
   /// \brief Sparse matrix that presents a row-oriented interface that
   ///   lets users read or modify entries.
