@@ -532,8 +532,75 @@ private:
   // /////////////////////////////////
   // Private member functions
 
+  // Check for help option in the command line arguments
+  EParseCommandLineReturn checkForHelpOption(
+    int argc,
+    char* argv[],
+    std::ostream* errout
+    ) const;
+
+  // Handle special built-in options (echo-command-line, pause-for-debugging)
+  bool handleSpecialOptions(
+    const std::string& opt_name,
+    int argc,
+    char* argv[],
+    std::ostream* errout
+    ) const;
+
+  // Find and validate an option in the options list
+  EParseCommandLineReturn findAndValidateOption(
+    const std::string& opt_name,
+    int argv_i,
+    char* argv[],
+    std::ostream* errout,
+    opt_val_val_t*& opt_val_val
+    ) const;
+
+  // Assign value to an option based on its type
+  EParseCommandLineReturn assignOptionValue(
+    opt_val_val_t& opt_val_val,
+    const std::string& opt_name,
+    const std::string& opt_val_str,
+    int argv_i,
+    char* argv[],
+    std::ostream* errout
+    ) const;
+
+  // Validate that all required options were provided
+  EParseCommandLineReturn validateRequiredOptions(
+    int argc,
+    char* argv[],
+    std::ostream* errout
+    ) const;
+
+  // Setup output stream options if enabled
+  void setupOutputOptions() const;
+
   // Set the extra output setup options
   void add_extra_output_setup_options() const;
+
+  // Process all command line arguments
+  EParseCommandLineReturn processArgumentList(
+    int argc,
+    char* argv[],
+    std::ostream* errout
+    ) const;
+
+  // Handle processing of unrecognized options
+  EParseCommandLineReturn processUnrecognizedOption(
+    int argv_i,
+    char* argv[],
+    std::ostream* errout
+    ) const;
+
+  // Process a single valid command line argument
+  EParseCommandLineReturn processSingleArgument(
+    const std::string& opt_name,
+    const std::string& opt_val_str,
+    int argv_i,
+    char* argv[],
+    std::ostream* errout
+    ) const;
 
   // Set an integer enumeration option
   void setEnumOption(
