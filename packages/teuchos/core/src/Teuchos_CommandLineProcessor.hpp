@@ -645,6 +645,13 @@ public: // Hidden implementation stuff that clients should never see
 
 private:
 
+
+  // Helper functions extracted from parse()
+  EParseCommandLineReturn handleHelpOption( int argc, char* argv[], std::ostream* errout ) const;
+  EParseCommandLineReturn processOptions( int argc, char* argv[], std::ostream* errout, int procRank ) const;
+  EParseCommandLineReturn checkRequiredOptions( const char* programName, std::ostream* errout ) const;
+  void setupDefaultOutput() const;
+
   static RCP<TimeMonitorSurrogate>& getRawTimeMonitorSurrogate();
 
 }; // end class CommandLineProcessor
