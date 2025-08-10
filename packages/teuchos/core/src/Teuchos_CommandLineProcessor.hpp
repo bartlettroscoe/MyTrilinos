@@ -377,6 +377,20 @@ public:
     ,char*          argv[]
     ,std::ostream   *errout = &std::cerr
     ) const;
+  /*! \brief Helper function to check for help option */
+  EParseCommandLineReturn  helperCheckHelpOptions(
+    int             argc
+    ,char*          argv[]
+    ,std::ostream   *errout
+    ) const;
+
+  /*! \brief Helper function to check for required options */
+  EParseCommandLineReturn  helperCheckRequiredOptions(
+    int             argc
+    ,char*          argv[]
+    ,std::ostream   *errout
+    ) const;
+
 
   //@}
 

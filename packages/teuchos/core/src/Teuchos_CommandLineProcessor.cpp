@@ -259,15 +259,9 @@ CommandLineProcessor::parse(
   const std::string  pause_opt = "pause-for-debugging";
   int procRank = GlobalMPISession::getRank();
 
-  // check for help options before any others as we modify
-  // the values afterwards
-  for( int i = 1; i < argc; ++i ) {
-    bool gov_return = get_opt_val( argv[i], &opt_name, &opt_val_str );
-    if( gov_return && opt_name == help_opt ) {
-      if(errout) printHelpMessage( argv[0], *errout );
-      return PARSE_HELP_PRINTED;
-    }
-  }
+  // check for help options before any others
+  if (helperCheckHelpOptions(argc, argv, errout) == PARSE_HELP_PRINTED)
+    return PARSE_HELP_PRINTED;
   // check all other options
   for( int i = 1; i < argc; ++i ) {
     bool gov_return = get_opt_val( argv[i], &opt_name, &opt_val_str );
@@ -360,27 +354,9 @@ CommandLineProcessor::parse(
         TEUCHOS_TEST_FOR_EXCEPT(true); // Local programming error only
     }
   }
-  // Look for options that were required but were not set
-  for(
-    options_list_t::const_iterator itr = options_list_.begin();
-    itr != options_list_.end();
-    ++itr
-    )
-  {
-    const opt_val_val_t   &opt_val_val  = (*itr).second;
-    if( opt_val_val.required && !opt_val_val.was_read ) {
-      const std::string     &opt_val_name = (*itr).first;
-#define CLP_ERR_MSG \
-      "Error, the option --"<<opt_val_name<<" was required but was not set!"
-      if(errout)
-        *errout << std::endl << argv[0] << " : " << CLP_ERR_MSG << std::endl;
-      if( throwExceptions() ) {
-        TEUCHOS_TEST_FOR_EXCEPTION( true, ParseError, CLP_ERR_MSG );
-      }
-      return PARSE_ERROR;
-#undef CLP_ERR_MSG
-    }
-  }
+  // Check for required options
+  if (helperCheckRequiredOptions(argc, argv, errout) == PARSE_ERROR)
+    return PARSE_ERROR;
   // Set the options of a default stream exists and if we are asked to
   RCP<FancyOStream>
     defaultOut = VerboseObjectBase::getDefaultOStream();
@@ -417,6 +393,55 @@ void CommandLineProcessor::printHelpMessage( const char program_name[],
     int opt_name_w = 19; // For the 'pause-for-debugging' option
     options_documentation_list_t::const_iterator itr;
     for (
+
+// Helper to check for --help before other options
+CommandLineProcessor::EParseCommandLineReturn
+CommandLineProcessor::helperCheckHelpOptions(
+  int             argc
+  ,char*          argv[]
+  ,std::ostream   *errout
+  ) const
+{
+  std::string opt_name;
+  std::string opt_val_str;
+  const std::string help_opt = "help";
+  for (int i = 1; i < argc; ++i) {
+    bool got = get_opt_val(argv[i], &opt_name, &opt_val_str);
+    if (got && opt_name == help_opt) {
+      if (errout) printHelpMessage(argv[0], *errout);
+      return PARSE_HELP_PRINTED;
+    }
+  }
+  return PARSE_SUCCESSFUL;
+}
+
+// Helper to check required options
+CommandLineProcessor::EParseCommandLineReturn
+CommandLineProcessor::helperCheckRequiredOptions(
+  int             argc
+  ,char*          argv[]
+  ,std::ostream   *errout
+  ) const
+{
+  for (options_list_t::const_iterator itr = options_list_.begin();
+       itr != options_list_.end(); ++itr) {
+    const opt_val_val_t& v = itr->second;
+    if (v.required && !v.was_read) {
+      const std::string &name = itr->first;
+#define CLP_ERR_MSG \
+      "Error, the option --" << name << " was required but was not set!"
+      if (errout)
+        *errout << std::endl << argv[0] << " : " << CLP_ERR_MSG << std::endl;
+      if (throwExceptions()) {
+        TEUCHOS_TEST_FOR_EXCEPTION(true, ParseError, CLP_ERR_MSG);
+      }
+#undef CLP_ERR_MSG
+      return PARSE_ERROR;
+    }
+  }
+  return PARSE_SUCCESSFUL;
+}
+
       itr = options_documentation_list_.begin();
       itr != options_documentation_list_.end();
       ++itr
