@@ -378,6 +378,112 @@ public:
     ,std::ostream   *errout = &std::cerr
     ) const;
 
+  /** \brief Check for help option and print help message if found.
+   *
+   * \param  argc    [in] number of entries in argv[]
+   * \param  argv    [in] array (length argc) of command line arguments.
+   * \param  errout  [out] If <tt>!=NULL</tt> then help messages are sent here.
+   *
+   * \return true if help was printed, false otherwise.
+   */
+  bool checkHelpOption(
+    int             argc,
+    char*          argv[],
+    std::ostream   *errout = &std::cerr
+    ) const;
+
+  /** \brief Process all command line options.
+   *
+   * \param  argc    [in] number of entries in argv[]
+   * \param  argv    [in/out] array (length argc) of command line arguments.
+   * \param  errout  [out] If <tt>!=NULL</tt> then error messages are sent here.
+   *
+   * \return One of the EParseCommandLineReturn enum values.
+   */
+  EParseCommandLineReturn processOptions(
+    int             argc,
+    char*          argv[],
+    std::ostream   *errout = &std::cerr
+    ) const;
+
+  /** \brief Handle special options like echo-command-line and pause-for-debugging.
+   *
+   * \param  i            [in] current argument index
+   * \param  argc         [in] number of entries in argv[]
+   * \param  argv         [in] array (length argc) of command line arguments.
+   * \param  opt_name      [in] name of the option
+   * \param  echo_cl_opt   [in] echo command-line option name
+   * \param  pause_opt     [in] pause-for-debugging option name
+   * \param  errout       [out] If <tt>!=NULL</tt> then output is sent here.
+   * \param  procRank     [in] MPI process rank
+   *
+   * \return true if a special option was handled, false otherwise.
+   */
+  bool handleSpecialOptions(
+    int             i,
+    int             argc,
+    char*          argv[],
+    const std::string &opt_name,
+    const std::string &echo_cl_opt,
+    const std::string &pause_opt,
+    std::ostream   *errout,
+    int             procRank
+    ) const;
+
+  /** \brief Handle pause-for-debugging option.
+   *
+   * \param  procRank  [in] MPI process rank
+   */
+  void handlePauseForDebugging(
+    int procRank
+    ) const;
+
+  /** \brief Process a recognized option.
+   *
+   * \param  opt_name     [in] name of the option
+   * \param  opt_val_str  [in] value of the option
+   * \param  i           [in] current argument index
+   * \param  argv        [in] array of command line arguments.
+   * \param  errout      [out] If <tt>!=NULL</tt> then error messages are sent here.
+   *
+   * \return true if the option was processed successfully, false otherwise.
+   */
+  bool processRecognizedOption(
+    const std::string &opt_name,
+    const std::string &opt_val_str,
+    int             i,
+    char*          argv[],
+    std::ostream   *errout
+    ) const;
+
+  /** \brief Process the value of a recognized option.
+   *
+   * \param  opt_val_val  [in/out] option value structure
+   * \param  opt_val_str  [in] value of the option as a string
+   *
+   * \return true if the option value was processed successfully, false otherwise.
+   */
+  bool processOptionValue(
+    opt_val_val_t &opt_val_val,
+    const std::string &opt_val_str
+    ) const;
+
+  /** \brief Check for required options that were not set.
+   *
+   * \param  argv    [in] array of command line arguments.
+   * \param  errout  [out] If <tt>!=NULL</tt> then error messages are sent here.
+   *
+   * \return true if a required option was not set, false otherwise.
+   */
+  bool checkRequiredOptions(
+    char*          argv[],
+    std::ostream   *errout = &std::cerr
+    ) const;
+
+  /** \brief Set output options if a default stream exists and if requested.
+   */
+  void setOutputOptions() const;
+
   //@}
 
   //! @name Miscellaneous
