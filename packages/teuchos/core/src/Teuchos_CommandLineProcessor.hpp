@@ -595,6 +595,12 @@ private:
     ,std::ostream   *errout
     ) const;
 
+
+	  // Refactored helper functions extracted from parse()
+	  EParseCommandLineReturn checkForHelpOption(int argc, char* argv[], std::ostream* errout) const;
+	  EParseCommandLineReturn processArguments(int argc, char* argv[], std::ostream* errout) const;
+	  EParseCommandLineReturn finalizeOptions(const char program_name[], std::ostream* errout) const;
+
 public: // Hidden implementation stuff that clients should never see
 
   /// \class TimeMonitorSurrogate
