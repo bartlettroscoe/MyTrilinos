@@ -536,6 +536,14 @@ private:
   void add_extra_output_setup_options() const;
 
   // Set an integer enumeration option
+
+	  // Extracted helper functions to simplify parse()
+	  bool check_for_help(int argc, char* argv[], std::ostream* errout) const;
+	  bool handle_echo_or_pause(const std::string &opt_name, int argc, char* argv[], std::ostream* errout) const;
+	  EParseCommandLineReturn handle_unrecognized_or_set_opt(int i, char* argv[], const std::string &opt_name, const std::string &opt_val_str, std::ostream *errout) const;
+	  bool validate_required_options(int argc, char* argv[], std::ostream* errout) const;
+	  void apply_output_setup_to_default_stream() const;
+
   void setEnumOption(
     const char enum_option_name[],
     int* enum_option_val,
