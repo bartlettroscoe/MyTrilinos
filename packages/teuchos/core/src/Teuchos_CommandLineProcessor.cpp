@@ -252,151 +252,25 @@ CommandLineProcessor::parse(
   ) const
 {
   add_extra_output_setup_options();
-  std::string        opt_name;
-  std::string        opt_val_str;
-  const std::string  echo_cl_opt = "echo-command-line";
-  const std::string  help_opt = "help";
-  const std::string  pause_opt = "pause-for-debugging";
-  int procRank = GlobalMPISession::getRank();
+  std::string opt_name;
+  std::string opt_val_str;
+  const int procRank = GlobalMPISession::getRank();
 
-  // check for help options before any others as we modify
-  // the values afterwards
-  for( int i = 1; i < argc; ++i ) {
-    bool gov_return = get_opt_val( argv[i], &opt_name, &opt_val_str );
-    if( gov_return && opt_name == help_opt ) {
-      if(errout) printHelpMessage( argv[0], *errout );
-      return PARSE_HELP_PRINTED;
-    }
+  if (check_for_help(argc, argv, errout)) {
+    return PARSE_HELP_PRINTED;
   }
-  // check all other options
-  for( int i = 1; i < argc; ++i ) {
-    bool gov_return = get_opt_val( argv[i], &opt_name, &opt_val_str );
-    if( !gov_return ) {
-      if(procRank == 0)
-        print_bad_opt(i,argv,errout);
-      if( recogniseAllOptions() )
-        return PARSE_UNRECOGNIZED_OPTION;
-      else {
-        continue;
-      }
+  for (int i = 1; i < argc; ++i) {
+    bool gov_return = get_opt_val(argv[i], &opt_name, &opt_val_str);
+    if (!gov_return) {
+      if (procRank == 0) print_bad_opt(i, argv, errout);
+      if (recogniseAllOptions()) return PARSE_UNRECOGNIZED_OPTION; else continue;
     }
-    if( opt_name == echo_cl_opt ) {
-      if(errout && procRank == 0) {
-        *errout << "\nEchoing the command-line:\n\n";
-        for( int j = 0; j < argc; ++j )
-          *errout << argv[j] << " ";
-        *errout << "\n\n";
-      }
-      continue;
-    }
-    if( opt_name == pause_opt ) {
-#ifndef _WIN32
-      Array<int> pids;
-      pids.resize(GlobalMPISession::getNProc());
-      int rank_pid = getpid();
-      GlobalMPISession::allGather(rank_pid,pids());
-      if(procRank == 0)
-        for (int k=0; k<GlobalMPISession::getNProc(); k++)
-          std::cerr << "Rank " << k << " has PID " << pids[k] << std::endl;
-#endif
-      if(procRank == 0) {
-        std::cerr << "\nType 0 and press enter to continue : ";
-        int dummy_int = 0;
-        std::cin >> dummy_int;
-      }
-      GlobalMPISession::barrier();
-      continue;
-    }
-    // Lookup the option (we had better find it!)
-    options_list_t::iterator  itr = options_list_.find(opt_name);
-    if( itr == options_list_.end() ) {
-      if(procRank == 0)
-        print_bad_opt(i,argv,errout);
-      if( recogniseAllOptions() )
-        return PARSE_UNRECOGNIZED_OPTION;
-      else
-        continue;
-    }
-    // Changed access to second value of std::map to not use overloaded arrow operator,
-    // otherwise this code will not compile on Janus (HKT, 12/01/2003)
-    opt_val_val_t &opt_val_val = (*itr).second;
-    opt_val_val.was_read = true;
-    switch( opt_val_val.opt_type ) {
-      case OPT_BOOL_TRUE:
-        *(any_cast<bool*>(opt_val_val.opt_val)) = true;
-        break;
-      case OPT_BOOL_FALSE:
-        *(any_cast<bool*>(opt_val_val.opt_val)) = false;
-        break;
-      case OPT_INT:
-        *(any_cast<int*>(opt_val_val.opt_val)) = asSafe<int> (opt_val_str);
-        break;
-      case OPT_LONG_INT:
-        *(any_cast<long int*>(opt_val_val.opt_val)) = asSafe<long int> (opt_val_str);
-        break;
-      case OPT_SIZE_T:
-        *(any_cast<size_t *>(opt_val_val.opt_val)) = asSafe<size_t> (opt_val_str);
-        break;
-      case OPT_LONG_LONG_INT:
-        *(any_cast<long long int*>(opt_val_val.opt_val)) = asSafe<long long int> (opt_val_str);
-        break;
-      case OPT_DOUBLE:
-        *(any_cast<double*>(opt_val_val.opt_val)) = asSafe<double> (opt_val_str);
-        break;
-      case OPT_FLOAT:
-        *(any_cast<float*>(opt_val_val.opt_val)) = asSafe<float> (opt_val_str);
-        break;
-      case OPT_STRING:
-        *(any_cast<std::string*>(opt_val_val.opt_val)) = remove_quotes(opt_val_str);
-        break;
-      case OPT_ENUM_INT:
-        if( !set_enum_value( i, argv, opt_name, any_cast<int>(opt_val_val.opt_val),
-            remove_quotes(opt_val_str), errout ) )
-        {
-          return PARSE_UNRECOGNIZED_OPTION;
-        }
-        break;
-      default:
-        TEUCHOS_TEST_FOR_EXCEPT(true); // Local programming error only
-    }
+    if (handle_echo_or_pause(opt_name, argc, argv, errout)) continue;
+    EParseCommandLineReturn r = handle_unrecognized_or_set_opt(i, argv, opt_name, opt_val_str, errout);
+    if (r != PARSE_SUCCESSFUL) return r;
   }
-  // Look for options that were required but were not set
-  for(
-    options_list_t::const_iterator itr = options_list_.begin();
-    itr != options_list_.end();
-    ++itr
-    )
-  {
-    const opt_val_val_t   &opt_val_val  = (*itr).second;
-    if( opt_val_val.required && !opt_val_val.was_read ) {
-      const std::string     &opt_val_name = (*itr).first;
-#define CLP_ERR_MSG \
-      "Error, the option --"<<opt_val_name<<" was required but was not set!"
-      if(errout)
-        *errout << std::endl << argv[0] << " : " << CLP_ERR_MSG << std::endl;
-      if( throwExceptions() ) {
-        TEUCHOS_TEST_FOR_EXCEPTION( true, ParseError, CLP_ERR_MSG );
-      }
-      return PARSE_ERROR;
-#undef CLP_ERR_MSG
-    }
-  }
-  // Set the options of a default stream exists and if we are asked to
-  RCP<FancyOStream>
-    defaultOut = VerboseObjectBase::getDefaultOStream();
-  if (defaultOut.get() && addOutputSetupOptions_) {
-    if (output_all_front_matter_ != output_all_front_matter_default_)
-      defaultOut->setShowAllFrontMatter(output_all_front_matter_);
-    if (output_show_line_prefix_ != output_show_line_prefix_default_)
-      defaultOut->setShowLinePrefix(output_show_line_prefix_);
-    if (output_show_tab_count_ != output_show_tab_count_default_)
-      defaultOut->setShowTabCount(output_show_tab_count_);
-    if (output_show_proc_rank_ != output_show_proc_rank_default_)
-      defaultOut->setShowProcRank(output_show_proc_rank_);
-    if (output_to_root_rank_only_ != output_to_root_rank_only_default_)
-      defaultOut->setOutputToRootOnly(output_to_root_rank_only_);
-    RCPNodeTracer::setPrintRCPNodeStatisticsOnExit(print_rcpnode_statistics_on_exit_);
-  }
+  if (!validate_required_options(argc, argv, errout)) return PARSE_ERROR;
+  apply_output_setup_to_default_stream();
   return PARSE_SUCCESSFUL;
 }
 
@@ -648,6 +522,143 @@ void CommandLineProcessor::add_extra_output_setup_options() const
   clp->added_extra_output_setup_options_ = true;
   clp->in_add_extra_output_setup_options_ = false;
 }
+
+CommandLineProcessor::EParseCommandLineReturn
+CommandLineProcessor::handle_unrecognized_or_set_opt(
+  int i, char* argv[], const std::string &opt_name, const std::string &opt_val_str, std::ostream *errout
+  ) const
+{
+  const int procRank = GlobalMPISession::getRank();
+  options_list_t::iterator itr = options_list_.find(opt_name);
+  if (itr == options_list_.end()) {
+    if (procRank == 0)
+      print_bad_opt(i, argv, errout);
+    if (recogniseAllOptions())
+      return PARSE_UNRECOGNIZED_OPTION;
+    else
+      return PARSE_SUCCESSFUL; // ignore unrecognized when allowed
+  }
+  opt_val_val_t &opt_val_val = (*itr).second;
+  opt_val_val.was_read = true;
+  switch (opt_val_val.opt_type) {
+    case OPT_BOOL_TRUE:
+      *(any_cast<bool*>(opt_val_val.opt_val)) = true; break;
+    case OPT_BOOL_FALSE:
+      *(any_cast<bool*>(opt_val_val.opt_val)) = false; break;
+    case OPT_INT:
+      *(any_cast<int*>(opt_val_val.opt_val)) = asSafe<int>(opt_val_str); break;
+    case OPT_LONG_INT:
+      *(any_cast<long int*>(opt_val_val.opt_val)) = asSafe<long int>(opt_val_str); break;
+    case OPT_SIZE_T:
+      *(any_cast<size_t*>(opt_val_val.opt_val)) = asSafe<size_t>(opt_val_str); break;
+    case OPT_LONG_LONG_INT:
+      *(any_cast<long long int*>(opt_val_val.opt_val)) = asSafe<long long int>(opt_val_str); break;
+    case OPT_DOUBLE:
+      *(any_cast<double*>(opt_val_val.opt_val)) = asSafe<double>(opt_val_str); break;
+    case OPT_FLOAT:
+      *(any_cast<float*>(opt_val_val.opt_val)) = asSafe<float>(opt_val_str); break;
+    case OPT_STRING:
+      *(any_cast<std::string*>(opt_val_val.opt_val)) = remove_quotes(opt_val_str); break;
+    case OPT_ENUM_INT:
+      if (!set_enum_value(i, argv, opt_name, any_cast<int>(opt_val_val.opt_val), remove_quotes(opt_val_str), errout))
+        return PARSE_UNRECOGNIZED_OPTION;
+      break;
+    default:
+      TEUCHOS_TEST_FOR_EXCEPT(true);
+  }
+  return PARSE_SUCCESSFUL;
+}
+
+
+bool CommandLineProcessor::check_for_help(int argc, char* argv[], std::ostream* errout) const
+{
+  std::string opt_name, opt_val_str;
+  const std::string help_opt = "help";
+  for (int i = 1; i < argc; ++i) {
+    bool gov_return = get_opt_val(argv[i], &opt_name, &opt_val_str);
+    if (gov_return && opt_name == help_opt) {
+      if (errout) printHelpMessage(argv[0], *errout);
+      return true;
+    }
+  }
+  return false;
+}
+
+
+bool CommandLineProcessor::handle_echo_or_pause(const std::string &opt_name, int argc, char* argv[], std::ostream* errout) const
+{
+  const std::string echo_cl_opt = "echo-command-line";
+  const std::string pause_opt = "pause-for-debugging";
+  const int procRank = GlobalMPISession::getRank();
+  if (opt_name == echo_cl_opt) {
+    if (errout && procRank == 0) {
+      *errout << "\nEchoing the command-line:\n\n";
+      for (int j = 0; j < argc; ++j) *errout << argv[j] << " ";
+      *errout << "\n\n";
+    }
+    return true;
+  }
+  if (opt_name == pause_opt) {
+#ifndef _WIN32
+    Array<int> pids;
+    pids.resize(GlobalMPISession::getNProc());
+    int rank_pid = getpid();
+    GlobalMPISession::allGather(rank_pid, pids());
+    if (procRank == 0)
+      for (int k = 0; k < GlobalMPISession::getNProc(); k++)
+        std::cerr << "Rank " << k << " has PID " << pids[k] << std::endl;
+#endif
+    if (procRank == 0) {
+      std::cerr << "\nType 0 and press enter to continue : ";
+      int dummy_int = 0;
+      std::cin >> dummy_int;
+    }
+    GlobalMPISession::barrier();
+    return true;
+  }
+  return false;
+}
+
+
+bool CommandLineProcessor::validate_required_options(int argc, char* argv[], std::ostream* errout) const
+{
+  for (options_list_t::const_iterator itr = options_list_.begin(); itr != options_list_.end(); ++itr) {
+    const opt_val_val_t &opt_val_val = (*itr).second;
+    if (opt_val_val.required && !opt_val_val.was_read) {
+      const std::string &opt_val_name = (*itr).first;
+#define CLP_ERR_MSG \
+      "Error, the option --"<<opt_val_name<<" was required but was not set!"
+      if (errout)
+        *errout << std::endl << argv[0] << " : " << CLP_ERR_MSG << std::endl;
+      if (throwExceptions()) {
+        TEUCHOS_TEST_FOR_EXCEPTION(true, ParseError, CLP_ERR_MSG);
+      }
+      return false;
+#undef CLP_ERR_MSG
+    }
+  }
+  return true;
+}
+
+
+void CommandLineProcessor::apply_output_setup_to_default_stream() const
+{
+  RCP<FancyOStream> defaultOut = VerboseObjectBase::getDefaultOStream();
+  if (defaultOut.get() && addOutputSetupOptions_) {
+    if (output_all_front_matter_ != output_all_front_matter_default_)
+      defaultOut->setShowAllFrontMatter(output_all_front_matter_);
+    if (output_show_line_prefix_ != output_show_line_prefix_default_)
+      defaultOut->setShowLinePrefix(output_show_line_prefix_);
+    if (output_show_tab_count_ != output_show_tab_count_default_)
+      defaultOut->setShowTabCount(output_show_tab_count_);
+    if (output_show_proc_rank_ != output_show_proc_rank_default_)
+      defaultOut->setShowProcRank(output_show_proc_rank_);
+    if (output_to_root_rank_only_ != output_to_root_rank_only_default_)
+      defaultOut->setOutputToRootOnly(output_to_root_rank_only_);
+    RCPNodeTracer::setPrintRCPNodeStatisticsOnExit(print_rcpnode_statistics_on_exit_);
+  }
+}
+
 
 
 void CommandLineProcessor::setEnumOption(
