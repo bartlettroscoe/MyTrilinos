@@ -535,6 +535,25 @@ private:
   // Set the extra output setup options
   void add_extra_output_setup_options() const;
 
+  // Extracted helpers to simplify parse()
+  EParseCommandLineReturn check_help_option(
+    int argc, char* argv[], std::ostream *errout) const;
+
+  bool handle_built_in_option(
+    const std::string &opt_name,
+    int argc, char* argv[], int procRank, std::ostream *errout) const;
+
+  EParseCommandLineReturn set_option_from_tables(
+    int argv_i,
+    const std::string &opt_name,
+    const std::string &opt_val_str,
+    int argc, char* argv[], int procRank, std::ostream *errout) const;
+
+  EParseCommandLineReturn validate_required_options(
+    int argc, char* argv[], std::ostream *errout) const;
+
+  void apply_output_setup_options() const;
+
   // Set an integer enumeration option
   void setEnumOption(
     const char enum_option_name[],
