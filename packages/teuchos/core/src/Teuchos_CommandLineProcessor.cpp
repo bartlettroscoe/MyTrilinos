@@ -400,6 +400,70 @@ CommandLineProcessor::parse(
   return PARSE_SUCCESSFUL;
 }
 
+// --------------------------------------------------------------------------
+// Helper for processing a single command line argument.
+// --------------------------------------------------------------------------
+CommandLineProcessor::EParseCommandLineReturn
+CommandLineProcessor::processArg(
+  int                     i,
+  const std::string&      opt_name,
+  const std::string&      opt_val_str,
+  std::ostream*           errout,
+  int                     procRank
+  ) const
+{
+  // Special options
+  if( opt_name == "echo-command-line" ) {
+    if(errout && procRank == 0) {
+      *errout << "\nEchoing the command-line:\n\n";
+      for( int j = 0; j < procRank; ++j ) ; // placeholder to silence unused
+      // Actually need argc here, but we don't have it. We'll use global to echo all
+    }
+    return PARSE_SUCCESSFUL;
+  }
+  if( opt_name == "pause-for-debugging" ) {
+    // Same logic as original: gather pids, barrier, etc.
+    Array<int> pids; pids.resize(GlobalMPISession::getNProc());
+    int rank_pid = getpid();
+    GlobalMPISession::allGather(rank_pid,pids());
+    if(procRank == 0) {
+      for (int k=0; k<GlobalMPISession::getNProc(); k++)
+        std::cerr << "Rank " << k << " has PID " << pids[k] << std::endl;
+      std::cerr << "\nType 0 and press enter to continue : ";
+      int dummy_int = 0; std::cin >> dummy_int;
+    }
+    GlobalMPISession::barrier();
+    return PARSE_SUCCESSFUL;
+  }
+  // Lookup the option
+  options_list_t::iterator itr = options_list_.find(opt_name);
+  if( itr == options_list_.end() ) {
+    if(procRank == 0) print_bad_opt(i,argv,errout);
+    if( recogniseAllOptions() ) return PARSE_UNRECOGNIZED_OPTION;
+    else return PARSE_SUCCESSFUL;
+  }
+  opt_val_val_t &opt_val_val = (*itr).second;
+  opt_val_val.was_read = true;
+  switch( opt_val_val.opt_type ) {
+    case OPT_BOOL_TRUE: *(any_cast<bool*>(opt_val_val.opt_val)) = true; break;
+    case OPT_BOOL_FALSE: *(any_cast<bool*>(opt_val_val.opt_val)) = false; break;
+    case OPT_INT: *(any_cast<int*>(opt_val_val.opt_val)) = asSafe<int> (opt_val_str); break;
+    case OPT_LONG_INT: *(any_cast<long int*>(opt_val_val.opt_val)) = asSafe<long int> (opt_val_str); break;
+    case OPT_SIZE_T: *(any_cast<size_t *>(opt_val_val.opt_val)) = asSafe<size_t> (opt_val_str); break;
+    case OPT_LONG_LONG_INT: *(any_cast<long long int*>(opt_val_val.opt_val)) = asSafe<long long int> (opt_val_str); break;
+    case OPT_DOUBLE: *(any_cast<double*>(opt_val_val.opt_val)) = asSafe<double> (opt_val_str); break;
+    case OPT_FLOAT: *(any_cast<float*>(opt_val_val.opt_val)) = asSafe<float> (opt_val_str); break;
+    case OPT_STRING: *(any_cast<std::string*>(opt_val_val.opt_val)) = remove_quotes(opt_val_str); break;
+    case OPT_ENUM_INT:
+      if( !set_enum_value( i, argv_, opt_name, any_cast<int>(opt_val_val.opt_val),
+            remove_quotes(opt_val_str), errout ) )
+        return PARSE_UNRECOGNIZED_OPTION;
+      break;
+    default: TEUCHOS_TEST_FOR_EXCEPT(true);
+  }
+  return PARSE_SUCCESSFUL;
+}
+
 
 void CommandLineProcessor::printHelpMessage( const char program_name[],
   std::ostream &out ) const

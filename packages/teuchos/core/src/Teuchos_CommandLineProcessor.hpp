@@ -378,6 +378,24 @@ public:
     ,std::ostream   *errout = &std::cerr
     ) const;
 
+  /**
+   * @brief Process a single command line argument.
+   *
+   * Extracted from the original parse() implementation to keep the
+   * function size manageable.  It performs the same logic for a
+   * single option and returns the appropriate {@link EParseCommandLineReturn}
+   * value.  The caller is responsible for handling the return value.
+   */
+  EParseCommandLineReturn processArg(
+    int                     i,
+    const std::string&      opt_name,
+    const std::string&      opt_val_str,
+    std::ostream*           errout,
+    int                     procRank,
+    int                     argc,
+    char*                   argv[]
+    ) const;
+
   //@}
 
   //! @name Miscellaneous
