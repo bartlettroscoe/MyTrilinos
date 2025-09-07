@@ -289,26 +289,9 @@ CommandLineProcessor::parse(
       }
       continue;
     }
-    if( opt_name == pause_opt ) {
-#ifndef _WIN32
-      Array<int> pids;
-      pids.resize(GlobalMPISession::getNProc());
-      int rank_pid = getpid();
-      GlobalMPISession::allGather(rank_pid,pids());
-      if(procRank == 0)
-        for (int k=0; k<GlobalMPISession::getNProc(); k++)
-          std::cerr << "Rank " << k << " has PID " << pids[k] << std::endl;
-#endif
-      if(procRank == 0) {
-        std::cerr << "\nType 0 and press enter to continue : ";
-        int dummy_int = 0;
-        std::cin >> dummy_int;
-      }
-      GlobalMPISession::barrier();
-      continue;
-    }
-    // Lookup the option (we had better find it!)
-    options_list_t::iterator  itr = options_list_.find(opt_name);
+    if( parsePauseIfAsked(opt_name, procRank, pause_opt) ) continue;
+  // Lookup the option (we had better find it!)
+  options_list_t::iterator  itr = options_list_.find(opt_name);
     if( itr == options_list_.end() ) {
       if(procRank == 0)
         print_bad_opt(i,argv,errout);
@@ -850,5 +833,30 @@ CommandLineProcessor::getRawTimeMonitorSurrogate()
   return timeMonitorSurrogate;
 }
 
+
+// -----------------------------------------------------------------------------
+// Implementation of the extracted pause handling helper.
+bool CommandLineProcessor::parsePauseIfAsked(const std::string &opt_name,
+                                              int procRank,
+                                              const std::string &pause_opt) const {
+  if( opt_name != pause_opt ) return false;
+  // Original pause handling block
+#ifndef _WIN32
+  Array<int> pids;
+  pids.resize(GlobalMPISession::getNProc());
+  int rank_pid = getpid();
+  GlobalMPISession::allGather(rank_pid,pids());
+  if(procRank == 0)
+    for (int k=0; k<GlobalMPISession::getNProc(); k++)
+      std::cerr << "Rank " << k << " has PID " << pids[k] << std::endl;
+#endif
+  if(procRank == 0) {
+    std::cerr << "\nType 0 and press enter to continue : ";
+    int dummy_int = 0;
+    std::cin >> dummy_int;
+  }
+  GlobalMPISession::barrier();
+  return true;
+}
 
 } // end namespace Teuchos

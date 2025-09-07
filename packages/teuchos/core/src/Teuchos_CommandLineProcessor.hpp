@@ -377,6 +377,22 @@ public:
     ,char*          argv[]
     ,std::ostream   *errout = &std::cerr
     ) const;
+  /**
+   * @brief Handle the --pause-for-debugging option.
+   *
+   * This helper extracts the logic that prints process IDs and waits for
+   * user input when the pause option is encountered.  It is exposed as a
+   * public member function to allow unit tests to exercise it directly.
+   *
+   * @param opt_name   The option name being processed.
+   * @param procRank   Current MPI rank.
+   * @param pause_opt  The string value of the pause option.
+   * @return true if the pause option was processed and the caller should
+   *   continue to the next command-line argument.
+   */
+  bool parsePauseIfAsked(const std::string &opt_name,
+                         int procRank,
+                         const std::string &pause_opt) const;
 
   //@}
 
