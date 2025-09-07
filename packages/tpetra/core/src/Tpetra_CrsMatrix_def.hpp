@@ -303,8 +303,59 @@ namespace Tpetra {
       std::ostringstream os;
       os << *prefix << "Done" << endl;
       std::cerr << os.str ();
-    }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Extracted helper that performs the matrix‑matrix transfer logic.
+// ---------------------------------------------------------------------------
+template <class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node>
+void
+CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
+transferAndFillComplete_getCallersParamters (
+  const ::Tpetra::Details::Transfer<LocalOrdinal, GlobalOrdinal, Node>& rowTransfer,
+  const Teuchos::RCP<Teuchos::ParameterList>& params,
+  bool isMM,
+  bool reverseMode,
+  int mm_optimization_core_count,
+  bool overrideAllreduce,
+  std::shared_ptr< ::Tpetra::Details::CommRequest> & iallreduceRequest,
+  int & mismatch,
+  int & reduced_mismatch) const
+{
+  // Only used in the sparse matrix-matrix multiply (isMM) case.
+  iallreduceRequest = nullptr;
+  mismatch = 0;
+  reduced_mismatch = 0;
+  if (isMM && !overrideAllreduce) {
+
+    // Test for pathological matrix transfer
+    const bool source_vals = ! getGraph ()->getImporter ().is_null();
+    const bool target_vals = ! (rowTransfer.getExportLIDs ().size() == 0 ||
+                                rowTransfer.getRemoteLIDs ().size() == 0);
+    mismatch = (source_vals != target_vals) ? 1 : 0;
+    iallreduceRequest =
+      ::Tpetra::Details::iallreduce (mismatch, reduced_mismatch,
+                                     Teuchos::REDUCE_MAX, * (getComm ()));
+  }
+
+#ifdef HAVE_TPETRA_MMM_TIMINGS
+  using Teuchos::TimeMonitor;
+  std::string label;
+  if(!params.is_null())
+      label = params->get("Timer Label",label);
+  std::string prefix = std::string("Tpetra ")+ label + std::string(": ");
+  std::string tlstr;
+  {
+    std::ostringstream os;
+    if(isMM) os<<":MMOpt";
+    else os<<":MMLegacy";
+    tlstr = os.str();
+  }
+
+  Teuchos::TimeMonitor MMall(*TimeMonitor::getNewTimer(prefix + std::string("TAFC All") +tlstr ));
+#endif
+}
 
   template<class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node>
   CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
@@ -7740,45 +7791,12 @@ CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
       isMM = slist.get("isMatrixMatrix_TransferAndFillComplete",false);
       mm_optimization_core_count = slist.get("MM_TAFC_OptimizationCoreCount",mm_optimization_core_count);
 
-      overrideAllreduce = slist.get("MM_TAFC_OverrideAllreduceCheck",false);
-      if(getComm()->getSize() < mm_optimization_core_count && isMM)   isMM = false;
-      if(reverseMode) isMM = false;
-    }
+      // Re‑apply kernel‑parameter settings before delegating.
+      transferAndFillComplete_getCallersParamters(
+        rowTransfer, params, isMM, reverseMode, mm_optimization_core_count,
+        overrideAllreduce, iallreduceRequest, mismatch, reduced_mismatch);
 
-   // Only used in the sparse matrix-matrix multiply (isMM) case.
-   std::shared_ptr< ::Tpetra::Details::CommRequest> iallreduceRequest;
-   int mismatch = 0;
-   int reduced_mismatch = 0;
-   if (isMM && !overrideAllreduce) {
-
-     // Test for pathological matrix transfer
-     const bool source_vals = ! getGraph ()->getImporter ().is_null();
-     const bool target_vals = ! (rowTransfer.getExportLIDs ().size() == 0 ||
-                                 rowTransfer.getRemoteLIDs ().size() == 0);
-     mismatch = (source_vals != target_vals) ? 1 : 0;
-     iallreduceRequest =
-       ::Tpetra::Details::iallreduce (mismatch, reduced_mismatch,
-                                      Teuchos::REDUCE_MAX, * (getComm ()));
-   }
-
-#ifdef HAVE_TPETRA_MMM_TIMINGS
-    using Teuchos::TimeMonitor;
-    std::string label;
-    if(!params.is_null())
-        label = params->get("Timer Label",label);
-    std::string prefix = std::string("Tpetra ")+ label + std::string(": ");
-    std::string tlstr;
-    {
-        std::ostringstream os;
-        if(isMM) os<<":MMOpt";
-        else os<<":MMLegacy";
-        tlstr = os.str();
-    }
-
-    Teuchos::TimeMonitor MMall(*TimeMonitor::getNewTimer(prefix + std::string("TAFC All") +tlstr ));
-#endif
-
-    // Make sure that the input argument rowTransfer is either an
+   // Make sure that the input argument rowTransfer is either an
     // Import or an Export.  Import and Export are the only two
     // subclasses of Transfer that we defined, but users might
     // (unwisely, for now at least) decide to implement their own
