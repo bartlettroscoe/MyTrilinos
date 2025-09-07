@@ -3527,6 +3527,21 @@ public:
                              const Teuchos::RCP<const map_type>& rangeMap = Teuchos::null,
                              const Teuchos::RCP<Teuchos::ParameterList>& params = Teuchos::null) const;
 
+    /// Extracted helper for transferAndFillComplete.
+    ///
+    /// Handles parameter extraction and optional iallreduce setup.
+    void
+    transferAndFillComplete_getCallersParamters (
+      const ::Tpetra::Details::Transfer<LocalOrdinal, GlobalOrdinal, Node>& rowTransfer,
+      const Teuchos::RCP<Teuchos::ParameterList>& params,
+      bool& isMM,
+      bool reverseMode,
+      int mm_optimization_core_count,
+      bool& overrideAllreduce,
+      std::shared_ptr<Teuchos::CommRequest> & iallreduceRequest,
+      int & mismatch,
+      int & reduced_mismatch) const;
+
     /// \brief Common implementation detail of insertGlobalValues and
     ///   insertGlobalValuesFiltered.
     ///
