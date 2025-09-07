@@ -30,6 +30,11 @@
 
 
 #include <memory> // std::shared_ptr
+#include <string>
+
+// Forward declarations to avoid heavy includes in the declaration header.
+namespace Tpetra { namespace Details { class CommRequest; } }
+namespace Teuchos { class TimeMonitor; }
 
 namespace Tpetra {
 
@@ -3496,6 +3501,24 @@ public:
                            const Teuchos::RCP<const map_type>& domainMap,
                            const Teuchos::RCP<const map_type>& rangeMap,
                            const Teuchos::RCP<Teuchos::ParameterList>& params) const;
+
+    // Extracted helper to expose parameter processing and initial
+    // setup used by transferAndFillComplete. Public for testing.
+    void
+    transferAndFillComplete_getCallersParamters(
+      bool& isMM,
+      const Teuchos::RCP<Teuchos::ParameterList>& params,
+      const int mm_optimization_core_count,
+      const bool reverseMode,
+      const ::Tpetra::Details::Transfer<LocalOrdinal, GlobalOrdinal, Node>& rowTransfer,
+      std::shared_ptr< ::Tpetra::Details::CommRequest>& iallreduceRequest,
+      int& reduced_mismatch
+#ifdef HAVE_TPETRA_MMM_TIMINGS
+      , std::string& label,
+      std::string& prefix,
+      Teuchos::RCP<Teuchos::TimeMonitor>& timerAll
+#endif
+    ) const;
 
 
   private:
