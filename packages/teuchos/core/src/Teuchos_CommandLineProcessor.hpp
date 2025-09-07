@@ -378,6 +378,14 @@ public:
     ,std::ostream   *errout = &std::cerr
     ) const;
 
+  // Extracted helper to check for help option before processing all options.
+  // Returns PARSE_HELP_PRINTED if help was requested, otherwise PARSE_SUCCESSFUL.
+  EParseCommandLineReturn parseCheckForHelpOpt(
+    int             argc,
+    char*          argv[],
+    std::ostream   *errout = &std::cerr
+    ) const;
+
   //@}
 
   //! @name Miscellaneous
