@@ -261,13 +261,8 @@ CommandLineProcessor::parse(
 
   // check for help options before any others as we modify
   // the values afterwards
-  for( int i = 1; i < argc; ++i ) {
-    bool gov_return = get_opt_val( argv[i], &opt_name, &opt_val_str );
-    if( gov_return && opt_name == help_opt ) {
-      if(errout) printHelpMessage( argv[0], *errout );
-      return PARSE_HELP_PRINTED;
-    }
-  }
+  EParseCommandLineReturn help_ret = parseCheckForHelpOpt(argc, argv, errout);
+  if (help_ret != PARSE_SUCCESSFUL) return help_ret;
   // check all other options
   for( int i = 1; i < argc; ++i ) {
     bool gov_return = get_opt_val( argv[i], &opt_name, &opt_val_str );
@@ -396,6 +391,29 @@ CommandLineProcessor::parse(
     if (output_to_root_rank_only_ != output_to_root_rank_only_default_)
       defaultOut->setOutputToRootOnly(output_to_root_rank_only_);
     RCPNodeTracer::setPrintRCPNodeStatisticsOnExit(print_rcpnode_statistics_on_exit_);
+  }
+  return PARSE_SUCCESSFUL;
+}
+
+// -----------------------------------------------------------------------------
+// Helper that checks for the help option.
+// -----------------------------------------------------------------------------
+CommandLineProcessor::EParseCommandLineReturn
+CommandLineProcessor::parseCheckForHelpOpt(
+  int             argc,
+  char*           argv[],
+  std::ostream*   errout
+  ) const
+{
+  std::string        opt_name;
+  std::string        opt_val_str;
+  const std::string  help_opt = "help";
+  for( int i = 1; i < argc; ++i ) {
+    bool gov_return = get_opt_val( argv[i], &opt_name, &opt_val_str );
+    if( gov_return && opt_name == help_opt ) {
+      if(errout) printHelpMessage( argv[0], *errout );
+      return PARSE_HELP_PRINTED;
+    }
   }
   return PARSE_SUCCESSFUL;
 }
