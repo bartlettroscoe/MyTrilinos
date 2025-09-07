@@ -378,6 +378,26 @@ public:
     ,std::ostream   *errout = &std::cerr
     ) const;
 
+  /**
+   * @brief Check for the help option and print help if requested.
+   *
+   * This helper extracts the logic that scans for a "help" option from
+   * command line arguments.  It is public so that it can be unit-tested
+   * independently.
+   *
+   * @param argc Number of arguments.
+   * @param argv Argument vector.
+   * @param errout Optional error output stream.
+   * @return {@link EParseCommandLineReturn::PARSE_HELP_PRINTED} if the
+   *   help message was printed; otherwise {@link
+   *   EParseCommandLineReturn::PARSE_SUCCESSFUL}.
+   */
+  EParseCommandLineReturn parseCheckForHelpOpt(
+    int             argc
+    ,char*          argv[]
+    ,std::ostream   *errout
+    ) const;
+
   //@}
 
   //! @name Miscellaneous
