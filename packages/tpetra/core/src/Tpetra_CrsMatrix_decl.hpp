@@ -3540,6 +3540,24 @@ public:
                              const Teuchos::RCP<const map_type>& rangeMap = Teuchos::null,
                              const Teuchos::RCP<Teuchos::ParameterList>& params = Teuchos::null) const;
 
+    /// \brief Extracted helper for transferAndFillComplete.
+    /// \details This function is a direct extraction of the block of code
+    /// that initializes various parameters used later in
+    /// transferAndFillComplete.  It is public so that unit tests can
+    /// exercise the logic independently.
+    void transferAndFillComplete_getCallersParamters(
+      const Teuchos::RCP<CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node> >& destMat,
+      const ::Tpetra::Details::Transfer<LocalOrdinal, GlobalOrdinal, Node>& rowTransfer,
+      const Teuchos::RCP<const ::Tpetra::Details::Transfer<LocalOrdinal, GlobalOrdinal, Node> >& domainTransfer,
+      const Teuchos::RCP<const map_type>& domainMap,
+      const Teuchos::RCP<const map_type>& rangeMap,
+      const Teuchos::RCP<Teuchos::ParameterList>& params,
+      bool& isMM, bool& reverseMode, bool& restrictComm,
+      int& mm_optimization_core_count, Teuchos::RCP<Teuchos::ParameterList>& matrixparams,
+      bool& overrideAllreduce, bool& useKokkosPath,
+      std::shared_ptr< ::Tpetra::Details::CommRequest>& iallreduceRequest,
+      int& mismatch, int& reduced_mismatch) const;
+
     /// \brief Common implementation detail of insertGlobalValues and
     ///   insertGlobalValuesFiltered.
     ///
