@@ -378,6 +378,20 @@ public:
     ,std::ostream   *errout = &std::cerr
     ) const;
 
+  /**
+   * @brief Handle the "pause-for-debugging" option.
+   *
+   * This function implements the logic that was previously in the
+   * body of {@code parse} when the option {@code pause_opt} was
+   * encountered.  It returns {@code true} if the pause behaviour was
+   * performed and the caller should continue to the next iteration of
+   * the argument loop.
+   */
+  bool parsePauseIfAsked( const std::string &opt_name,
+                          const std::string &pause_opt,
+                          int procRank,
+                          std::ostream *errout ) const;
+
   //@}
 
   //! @name Miscellaneous
