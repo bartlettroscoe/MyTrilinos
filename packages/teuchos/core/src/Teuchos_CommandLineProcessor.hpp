@@ -378,6 +378,20 @@ public:
     ,std::ostream   *errout = &std::cerr
     ) const;
 
+  /**
+   * @brief Helper function to pause execution when the pause option is
+   * specified. This function encapsulates the logic that was originally
+   * in the main parse loop for handling the `--pause-for-debugging`
+   * option.
+   *
+   * The function is public so that tests can exercise it directly.
+   */
+  void parsePauseIfAsked(
+    int procRank,
+    const std::string& opt_name,
+    const std::string& pause_opt
+    ) const;
+
   //@}
 
   //! @name Miscellaneous
