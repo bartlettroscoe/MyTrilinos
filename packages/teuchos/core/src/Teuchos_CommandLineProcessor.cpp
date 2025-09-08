@@ -290,8 +290,8 @@ CommandLineProcessor::parse(
       continue;
     }
     if( parsePauseIfAsked(opt_name, procRank, pause_opt) ) continue;
-  // Lookup the option (we had better find it!)
-  options_list_t::iterator  itr = options_list_.find(opt_name);
+    // Lookup the option (we had better find it!)
+    options_list_t::iterator  itr = options_list_.find(opt_name);
     if( itr == options_list_.end() ) {
       if(procRank == 0)
         print_bad_opt(i,argv,errout);
