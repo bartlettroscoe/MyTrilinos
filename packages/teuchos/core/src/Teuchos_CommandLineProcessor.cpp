@@ -290,21 +290,7 @@ CommandLineProcessor::parse(
       continue;
     }
     if( opt_name == pause_opt ) {
-#ifndef _WIN32
-      Array<int> pids;
-      pids.resize(GlobalMPISession::getNProc());
-      int rank_pid = getpid();
-      GlobalMPISession::allGather(rank_pid,pids());
-      if(procRank == 0)
-        for (int k=0; k<GlobalMPISession::getNProc(); k++)
-          std::cerr << "Rank " << k << " has PID " << pids[k] << std::endl;
-#endif
-      if(procRank == 0) {
-        std::cerr << "\nType 0 and press enter to continue : ";
-        int dummy_int = 0;
-        std::cin >> dummy_int;
-      }
-      GlobalMPISession::barrier();
+      parsePauseIfAsked(procRank, opt_name, pause_opt);
       continue;
     }
     // Lookup the option (we had better find it!)
@@ -566,6 +552,36 @@ void CommandLineProcessor::printHelpMessage( const char program_name[],
     }
     if(throwExceptions_)
       TEUCHOS_TEST_FOR_EXCEPTION( true, HelpPrinted, "Help message was printed" );
+  }
+}
+
+/**
+ * Helper to handle the --pause-for-debugging option.
+ */
+void CommandLineProcessor::parsePauseIfAsked(
+  int procRank,
+  const std::string& /*opt_name*/,
+  const std::string& pause_opt
+  ) const
+{
+  // The original code block for handling pause option.
+  if (procRank == 0) {
+    // Gather PIDs for all processes (non-Windows)
+#ifndef _WIN32
+    Array<int> pids;
+    pids.resize(GlobalMPISession::getNProc());
+    int rank_pid = getpid();
+    GlobalMPISession::allGather(rank_pid,pids());
+    if(procRank == 0)
+      for (int k=0; k<GlobalMPISession::getNProc(); k++)
+        std::cerr << "Rank " << k << " has PID " << pids[k] << std::endl;
+#endif
+    if(procRank == 0) {
+      std::cerr << "\nType 0 and press enter to continue : ";
+      int dummy_int = 0;
+      std::cin >> dummy_int;
+    }
+    GlobalMPISession::barrier();
   }
 }
 
