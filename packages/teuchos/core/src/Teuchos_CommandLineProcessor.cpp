@@ -289,22 +289,7 @@ CommandLineProcessor::parse(
       }
       continue;
     }
-    if( opt_name == pause_opt ) {
-#ifndef _WIN32
-      Array<int> pids;
-      pids.resize(GlobalMPISession::getNProc());
-      int rank_pid = getpid();
-      GlobalMPISession::allGather(rank_pid,pids());
-      if(procRank == 0)
-        for (int k=0; k<GlobalMPISession::getNProc(); k++)
-          std::cerr << "Rank " << k << " has PID " << pids[k] << std::endl;
-#endif
-      if(procRank == 0) {
-        std::cerr << "\nType 0 and press enter to continue : ";
-        int dummy_int = 0;
-        std::cin >> dummy_int;
-      }
-      GlobalMPISession::barrier();
+    if( parsePauseIfAsked(opt_name, pause_opt, procRank, errout) ) {
       continue;
     }
     // Lookup the option (we had better find it!)
@@ -398,6 +383,39 @@ CommandLineProcessor::parse(
     RCPNodeTracer::setPrintRCPNodeStatisticsOnExit(print_rcpnode_statistics_on_exit_);
   }
   return PARSE_SUCCESSFUL;
+}
+
+/**
+ * @brief Helper that implements the pause‑for‑debugging logic.
+ *
+ * Returns true if the pause option was detected and handled, false otherwise.
+ */
+bool CommandLineProcessor::parsePauseIfAsked(
+  const std::string &opt_name,
+  const std::string &pause_opt,
+  int procRank,
+  std::ostream *errout
+  ) const
+{
+  if( opt_name == pause_opt ) {
+#ifndef _WIN32
+    Array<int> pids;
+    pids.resize(GlobalMPISession::getNProc());
+    int rank_pid = getpid();
+    GlobalMPISession::allGather(rank_pid,pids());
+    if(procRank == 0)
+      for (int k=0; k<GlobalMPISession::getNProc(); k++)
+        std::cerr << "Rank " << k << " has PID " << pids[k] << std::endl;
+#endif
+    if(procRank == 0) {
+      std::cerr << "\nType 0 and press enter to continue : ";
+      int dummy_int = 0;
+      std::cin >> dummy_int;
+    }
+    GlobalMPISession::barrier();
+    return true;
+  }
+  return false;
 }
 
 
