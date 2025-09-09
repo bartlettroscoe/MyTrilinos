@@ -37,6 +37,12 @@
 
 namespace Tpetra {
 
+// Forward declaration of the non‑templated communication request used by
+// transferAndFillComplete.  The full definition lives in
+// Tpetra_Details_iallreduce.hpp, which is included by the corresponding .def
+// file.
+namespace Details { class CommRequest; }
+
   // Forward declaration for CrsMatrix::swap() test
   template<class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node> class crsMatrix_Swap_Tester;
 
@@ -3539,6 +3545,22 @@ public:
                              const Teuchos::RCP<const map_type>& domainMap = Teuchos::null,
                              const Teuchos::RCP<const map_type>& rangeMap = Teuchos::null,
                              const Teuchos::RCP<Teuchos::ParameterList>& params = Teuchos::null) const;
+
+    // Extract caller's parameters for transferAndFillComplete.
+    void
+    transferAndFillComplete_getCallersParamters (
+        const Teuchos::RCP<Teuchos::ParameterList>& params,
+        const ::Tpetra::Details::Transfer<LocalOrdinal, GlobalOrdinal, Node>& rowTransfer,
+        bool& isMM,
+        bool& reverseMode,
+        bool& restrictComm,
+        int& mm_optimization_core_count,
+        Teuchos::RCP<Teuchos::ParameterList>& matrixparams,
+        bool& overrideAllreduce,
+        bool& useKokkosPath,
+    std::shared_ptr< ::Tpetra::Details::CommRequest>& iallreduceRequest,
+        int& mismatch,
+        int& reduced_mismatch) const;
 
     /// \brief Common implementation detail of insertGlobalValues and
     ///   insertGlobalValuesFiltered.
