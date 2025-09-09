@@ -7744,40 +7744,17 @@ CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
     bool reverseMode = false; // Are we in reverse mode?
     bool restrictComm = false; // Do we need to restrict the communicator?
 
-    int mm_optimization_core_count =
-      Behavior::TAFC_OptimizationCoreCount();
     RCP<ParameterList> matrixparams; // parameters for the destination matrix
-    bool overrideAllreduce = false;
     bool useKokkosPath = false;
-    if (! params.is_null ()) {
-      matrixparams = sublist (params, "CrsMatrix");
-      reverseMode = params->get ("Reverse Mode", reverseMode);
-      useKokkosPath = params->get ("TAFC: use kokkos path", useKokkosPath);
-      restrictComm = params->get ("Restrict Communicator", restrictComm);
-      auto & slist = params->sublist("matrixmatrix: kernel params",false);
-      isMM = slist.get("isMatrixMatrix_TransferAndFillComplete",false);
-      mm_optimization_core_count = slist.get("MM_TAFC_OptimizationCoreCount",mm_optimization_core_count);
 
-      overrideAllreduce = slist.get("MM_TAFC_OverrideAllreduceCheck",false);
-      if(getComm()->getSize() < mm_optimization_core_count && isMM)   isMM = false;
-      if(reverseMode) isMM = false;
-    }
+    // Only used in the sparse matrix-matrix multiply (isMM) case.
+    std::shared_ptr< ::Tpetra::Details::CommRequest> iallreduceRequest;
+    int reduced_mismatch = 0;
 
-   // Only used in the sparse matrix-matrix multiply (isMM) case.
-   std::shared_ptr< ::Tpetra::Details::CommRequest> iallreduceRequest;
-   int mismatch = 0;
-   int reduced_mismatch = 0;
-   if (isMM && !overrideAllreduce) {
-
-     // Test for pathological matrix transfer
-     const bool source_vals = ! getGraph ()->getImporter ().is_null();
-     const bool target_vals = ! (rowTransfer.getExportLIDs ().size() == 0 ||
-                                 rowTransfer.getRemoteLIDs ().size() == 0);
-     mismatch = (source_vals != target_vals) ? 1 : 0;
-     iallreduceRequest =
-       ::Tpetra::Details::iallreduce (mismatch, reduced_mismatch,
-                                      Teuchos::REDUCE_MAX, * (getComm ()));
-   }
+    transferAndFillComplete_getCallersParamters(
+      rowTransfer, params, matrixparams,
+      isMM, reverseMode, restrictComm, useKokkosPath,
+      iallreduceRequest, reduced_mismatch);
 
 #ifdef HAVE_TPETRA_MMM_TIMINGS
     using Teuchos::TimeMonitor;
@@ -9135,6 +9112,58 @@ CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
       std::cerr << os.str ();
     }
   } //transferAndFillComplete
+
+  template <class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node>
+  void
+  CrsMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
+  transferAndFillComplete_getCallersParamters(
+    const ::Tpetra::Details::Transfer<LocalOrdinal, GlobalOrdinal, Node>& rowTransfer,
+    const Teuchos::RCP<Teuchos::ParameterList>& params,
+    Teuchos::RCP<Teuchos::ParameterList>& matrixparams,
+    bool& isMM,
+    bool& reverseMode,
+    bool& restrictComm,
+    bool& useKokkosPath,
+    std::shared_ptr< ::Tpetra::Details::CommRequest>& iallreduceRequest,
+    int& reduced_mismatch) const
+  {
+    // initialize outputs to defaults
+    isMM = false;
+    reverseMode = false;
+    restrictComm = false;
+    useKokkosPath = false;
+    matrixparams = Teuchos::null;
+    iallreduceRequest.reset();
+    reduced_mismatch = 0;
+
+    int mm_optimization_core_count = Details::Behavior::TAFC_OptimizationCoreCount();
+    bool overrideAllreduce = false;
+
+    if (! params.is_null ()) {
+      matrixparams = Teuchos::sublist (params, "CrsMatrix");
+      reverseMode = params->get ("Reverse Mode", reverseMode);
+      useKokkosPath = params->get ("TAFC: use kokkos path", useKokkosPath);
+      restrictComm = params->get ("Restrict Communicator", restrictComm);
+      auto & slist = params->sublist("matrixmatrix: kernel params",false);
+      isMM = slist.get("isMatrixMatrix_TransferAndFillComplete",false);
+      mm_optimization_core_count = slist.get("MM_TAFC_OptimizationCoreCount",mm_optimization_core_count);
+
+      overrideAllreduce = slist.get("MM_TAFC_OverrideAllreduceCheck",false);
+      if(getComm()->getSize() < mm_optimization_core_count && isMM)   isMM = false;
+      if(reverseMode) isMM = false;
+    }
+
+    if (isMM && !overrideAllreduce) {
+      // Test for pathological matrix transfer
+      const bool source_vals = ! getGraph ()->getImporter ().is_null();
+      const bool target_vals = ! (rowTransfer.getExportLIDs ().size() == 0 ||
+                                  rowTransfer.getRemoteLIDs ().size() == 0);
+      const int mismatch = (source_vals != target_vals) ? 1 : 0;
+      iallreduceRequest =
+        ::Tpetra::Details::iallreduce (mismatch, reduced_mismatch,
+                                       Teuchos::REDUCE_MAX, * (getComm ()));
+    }
+  }
 
 
   template <class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node>
