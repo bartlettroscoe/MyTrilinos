@@ -378,6 +378,21 @@ public:
     ,std::ostream   *errout = &std::cerr
     ) const;
 
+  /**
+   * @brief Helper to pause execution if the pause option was specified.
+   *
+   * This function encapsulates the logic that previously lived directly in
+   * {@link parse}.  It returns true if the current iteration of the
+   * command‑line parsing loop should `continue` (i.e., skip the remaining
+   * option processing for the current argument).
+   */
+  bool parsePauseIfAsked(
+    const std::string &opt_name,
+    const std::string &pause_opt,
+    int procRank,
+    std::ostream *errout
+    ) const;
+
   //@}
 
   //! @name Miscellaneous
