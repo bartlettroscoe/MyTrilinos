@@ -37,6 +37,10 @@
 
 namespace Tpetra {
 
+namespace Details {
+  class CommRequest;
+}
+
   // Forward declaration for CrsMatrix::swap() test
   template<class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node> class crsMatrix_Swap_Tester;
 
@@ -3462,7 +3466,21 @@ public:
                            const import_type& domainImporter,
                            const Teuchos::RCP<const map_type>& domainMap,
                            const Teuchos::RCP<const map_type>& rangeMap,
-                           const Teuchos::RCP<Teuchos::ParameterList>& params) const;
+                             const Teuchos::RCP<Teuchos::ParameterList>& params) const;
+
+    // Extracted helper to get caller parameters used by transferAndFillComplete.
+    // Public for testing and developer use.
+    void
+    transferAndFillComplete_getCallersParamters(
+      const ::Tpetra::Details::Transfer<LocalOrdinal, GlobalOrdinal, Node>& rowTransfer,
+      const Teuchos::RCP<Teuchos::ParameterList>& params,
+      Teuchos::RCP<Teuchos::ParameterList>& matrixparams,
+      bool& isMM,
+      bool& reverseMode,
+      bool& restrictComm,
+      bool& useKokkosPath,
+      std::shared_ptr< ::Tpetra::Details::CommRequest>& iallreduceRequest,
+      int& reduced_mismatch) const;
 
 
     /// \brief Export from <tt>this</tt> to the given destination
