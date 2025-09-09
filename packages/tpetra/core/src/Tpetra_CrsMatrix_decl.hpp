@@ -3539,6 +3539,21 @@ public:
                              const Teuchos::RCP<const map_type>& domainMap = Teuchos::null,
                              const Teuchos::RCP<const map_type>& rangeMap = Teuchos::null,
                              const Teuchos::RCP<Teuchos::ParameterList>& params = Teuchos::null) const;
+    /// @brief Helper that extracts and returns parameters used by transferAndFillComplete.
+    struct TransferAndFillCompleteGetCallersParamsResult {
+      bool isMM;
+      bool reverseMode;
+      bool restrictComm;
+      int mm_optimization_core_count;
+      Teuchos::RCP<Teuchos::ParameterList> matrixparams;
+      bool overrideAllreduce;
+      bool useKokkosPath;
+    };
+    TransferAndFillCompleteGetCallersParamsResult
+    transferAndFillComplete_getCallersParamters(
+      const Teuchos::RCP<Teuchos::ParameterList>& params,
+      const ::Tpetra::Details::Transfer<LocalOrdinal, GlobalOrdinal, Node>& rowTransfer,
+      const Teuchos::RCP<const ::Tpetra::Details::Transfer<LocalOrdinal, GlobalOrdinal, Node>>& domainTransfer) const;
 
     /// \brief Common implementation detail of insertGlobalValues and
     ///   insertGlobalValuesFiltered.
