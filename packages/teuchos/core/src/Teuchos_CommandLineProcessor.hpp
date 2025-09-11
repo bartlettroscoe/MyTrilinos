@@ -595,6 +595,45 @@ private:
     ,std::ostream   *errout
     ) const;
 
+  // Helper: pre-scan for --help and print help if found
+  bool contains_help_and_print(
+    int             argc,
+    char*           argv[],
+    std::ostream*   errout
+    ) const;
+
+  // Helper: handle one argv entry; returns PARSE_SUCCESSFUL to continue, otherwise error code
+  EParseCommandLineReturn process_single_arg(
+    int             argv_i,
+    int             argc,
+    char*           argv[],
+    int             procRank,
+    std::ostream*   errout
+    ) const;
+
+  // Helper: check that all required options were set
+  EParseCommandLineReturn validate_required_options(
+    int             argc,
+    char*           argv[],
+    std::ostream*   errout
+    ) const;
+
+  // Helper: apply VerboseObject default stream options if requested
+  void apply_output_setup_to_default_stream() const;
+
+  // Helper: echo the command line (rank 0)
+  void echo_command_line(
+    int             argc,
+    char*           argv[],
+    std::ostream*   errout,
+    int             procRank
+    ) const;
+
+  // Helper: pause for debugging across MPI ranks
+  void pause_for_debugging(
+    int             procRank
+    ) const;
+
 public: // Hidden implementation stuff that clients should never see
 
   /// \class TimeMonitorSurrogate
