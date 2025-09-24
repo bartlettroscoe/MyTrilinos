@@ -875,16 +875,19 @@ typename ScalarTraits<ScalarType>::magnitudeType SerialSymDenseMatrix<OrdinalTyp
   if (upper_) {
     for (j = 0; j < numRowCols_; j++) {
       for (i = 0; i < j; i++) {
-        sum += ScalarTraits<ScalarType>::magnitude(2.0*values_[i+j*stride_]*values_[i+j*stride_]);
+        // Each off‑diagonal element appears twice in the Frobenius norm
+        sum += ScalarTraits<ScalarType>::magnitude(2.0 * values_[i + j*stride_] * values_[i + j*stride_]);
       }
-      sum += ScalarTraits<ScalarType>::magnitude(values_[j + j*stride_]*values_[j + j*stride_]);
+      // Diagonal element contributes once
+      sum += ScalarTraits<ScalarType>::magnitude(values_[j + j*stride_] * values_[j + j*stride_]);
     }
   }
   else {
     for (j = 0; j < numRowCols_; j++) {
       sum += ScalarTraits<ScalarType>::magnitude(values_[j + j*stride_]*values_[j + j*stride_]);
       for (i = j+1; i < numRowCols_; i++) {
-        sum += ScalarTraits<ScalarType>::magnitude(2.0*values_[i+j*stride_]*values_[i+j*stride_]);
+        // Off‑diagonal elements appear twice
+        sum += ScalarTraits<ScalarType>::magnitude(2.0 * values_[i + j*stride_] * values_[i + j*stride_]);
       }
     }
   }
