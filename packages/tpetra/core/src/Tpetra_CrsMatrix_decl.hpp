@@ -29,6 +29,9 @@
 
 #include <memory>  // std::shared_ptr
 
+// Forward declaration of Tpetra::Details::CommRequest used in the helper
+namespace Tpetra { namespace Details { class CommRequest; } }
+
 namespace Tpetra {
 
 // Forward declaration for CrsMatrix::swap() test
@@ -3500,6 +3503,26 @@ class CrsMatrix : public RowMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>,
                           const Teuchos::RCP<const map_type>& domainMap      = Teuchos::null,
                           const Teuchos::RCP<const map_type>& rangeMap       = Teuchos::null,
                           const Teuchos::RCP<Teuchos::ParameterList>& params = Teuchos::null) const;
+
+  /// \brief Helper to extract caller parameters used in transferAndFillComplete.
+  ///
+  /// This function extracts the logic that previously lived inside
+  /// CrsMatrix::transferAndFillComplete.  It is public so that unit
+  /// tests can exercise the logic in isolation.
+  void
+    transferAndFillComplete_getCallersParameters(
+      const Teuchos::RCP<Teuchos::ParameterList>& params,
+      const ::Tpetra::Details::Transfer<LocalOrdinal, GlobalOrdinal, Node>& rowTransfer,
+      bool& isMM,
+      bool& reverseMode,
+      bool& restrictComm,
+      int& mm_optimization_core_count,
+      Teuchos::RCP<Teuchos::ParameterList>& matrixparams,
+      bool& overrideAllreduce,
+      bool& useKokkosPath,
+      std::shared_ptr<::Tpetra::Details::CommRequest>& iallreduceRequest,
+      int& mismatch,
+      int& reduced_mismatch) const;
 
   /// \brief Common implementation detail of insertGlobalValues and
   ///   insertGlobalValuesFiltered.
