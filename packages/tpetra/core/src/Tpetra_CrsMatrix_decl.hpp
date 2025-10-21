@@ -35,6 +35,10 @@ namespace Tpetra {
 template <class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node>
 class crsMatrix_Swap_Tester;
 
+namespace Details {
+class CommRequest;
+}  // namespace Details
+
 /// \brief Nonmember CrsMatrix constructor that fuses Import and fillComplete().
 /// \relatesalso CrsMatrix
 /// \tparam CrsMatrixType A specialization of CrsMatrix.
@@ -3500,6 +3504,23 @@ class CrsMatrix : public RowMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>,
                           const Teuchos::RCP<const map_type>& domainMap      = Teuchos::null,
                           const Teuchos::RCP<const map_type>& rangeMap       = Teuchos::null,
                           const Teuchos::RCP<Teuchos::ParameterList>& params = Teuchos::null) const;
+
+ public:
+  void
+  transferAndFillComplete_getCallersParameters(
+      bool& isMM,
+      bool& reverseMode,
+      bool& restrictComm,
+      Teuchos::RCP<Teuchos::ParameterList>& matrixparams,
+      bool& overrideAllreduce,
+      bool& useKokkosPath,
+      std::shared_ptr<::Tpetra::Details::CommRequest>& iallreduceRequest,
+      int& mismatch,
+      int& reduced_mismatch,
+      const ::Tpetra::Details::Transfer<LocalOrdinal, GlobalOrdinal, Node>& rowTransfer,
+      const Teuchos::RCP<Teuchos::ParameterList>& params) const;
+
+ private:
 
   /// \brief Common implementation detail of insertGlobalValues and
   ///   insertGlobalValuesFiltered.
