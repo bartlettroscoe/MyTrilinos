@@ -14,6 +14,7 @@
 /// \brief Declaration of the Tpetra::CrsMatrix class
 
 #include "Tpetra_CrsMatrix_fwd.hpp"
+#include "Tpetra_Details_iallreduce.hpp"
 #include "TpetraExt_MatrixMatrix_fwd.hpp"
 #include "KokkosSparse_Utils.hpp"
 #include "KokkosSparse_CrsMatrix.hpp"
@@ -28,6 +29,10 @@
 #include "Teuchos_DataAccess.hpp"
 
 #include <memory>  // std::shared_ptr
+#include "Teuchos_Comm.hpp"
+
+// Forward declaration of CommRequest used in TransferAndFillCompleteParams
+namespace Tpetra { namespace Details { class CommRequest; } }
 
 namespace Tpetra {
 
@@ -3500,6 +3505,24 @@ class CrsMatrix : public RowMatrix<Scalar, LocalOrdinal, GlobalOrdinal, Node>,
                           const Teuchos::RCP<const map_type>& domainMap      = Teuchos::null,
                           const Teuchos::RCP<const map_type>& rangeMap       = Teuchos::null,
                           const Teuchos::RCP<Teuchos::ParameterList>& params = Teuchos::null) const;
+
+  // New public helper to extract caller parameters for transferAndFillComplete
+  struct TransferAndFillCompleteParams {
+    bool isMM;
+    bool reverseMode;
+    bool restrictComm;
+    int mm_optimization_core_count;
+    Teuchos::RCP<Teuchos::ParameterList> matrixparams;
+    bool overrideAllreduce;
+    bool useKokkosPath;
+    std::shared_ptr<Tpetra::Details::CommRequest> iallreduceRequest;
+    int mismatch;
+    int reduced_mismatch;
+  };
+
+  TransferAndFillCompleteParams
+  transferAndFillComplete_getCallersParameters(const Teuchos::RCP<Teuchos::ParameterList>& params,
+      const ::Tpetra::Details::Transfer<LocalOrdinal, GlobalOrdinal, Node>& rowTransfer) const;
 
   /// \brief Common implementation detail of insertGlobalValues and
   ///   insertGlobalValuesFiltered.
