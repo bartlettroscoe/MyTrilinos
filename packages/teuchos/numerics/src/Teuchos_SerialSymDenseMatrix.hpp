@@ -870,7 +870,7 @@ typename ScalarTraits<ScalarType>::magnitudeType SerialSymDenseMatrix<OrdinalTyp
 
   OrdinalType i, j;
 
-  MT sum = ScalarTraits<MT>::zero(), anorm = ScalarTraits<MT>::zero();
+  MT sum = ScalarTraits<MT>::zero();
 
   if (upper_) {
     for (j = 0; j < numRowCols_; j++) {
@@ -888,7 +888,7 @@ typename ScalarTraits<ScalarType>::magnitudeType SerialSymDenseMatrix<OrdinalTyp
       }
     }
   }
-  anorm = ScalarTraits<ScalarType>::magnitude(ScalarTraits<ScalarType>::squareroot(sum));
+  const MT anorm = ScalarTraits<ScalarType>::magnitude(ScalarTraits<ScalarType>::squareroot(sum));
   return(anorm);
 }
 
